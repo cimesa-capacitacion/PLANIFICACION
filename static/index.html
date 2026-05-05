@@ -3,41 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero Kanban en Tiempo Real</title>
+    <title>Tablero Kanban Corporativo en Tiempo Real</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar or Header -->
+        <!-- Header Principal -->
         <header class="header">
             <div class="header-left">
-                <h1>Tablero Kanban</h1>
+                <div class="logo-area">
+                    <div class="logo-icon">📊</div>
+                    <div>
+                        <h1>Planificación y Pendientes</h1>
+                        <span class="subtitle">Sincronización en Tiempo Real</span>
+                    </div>
+                </div>
                 <span class="status-badge offline" id="connection-status">Conectando...</span>
             </div>
             
             <div class="header-controls">
-                <div class="user-selector">
-                    <label for="filter-user">Usuario:</label>
-                    <select id="filter-user">
-                        <option value="Todos">Todos</option>
-                        <option value="Andrea">Andrea</option>
-                        <option value="Luis">Luis</option>
-                        <option value="Carlos">Carlos</option>
-                    </select>
+                <div class="filter-group">
+                    <div class="user-selector">
+                        <label for="filter-user">👤 Asignado:</label>
+                        <select id="filter-user">
+                            <option value="Todos">Todos</option>
+                            <option value="Luis Reyes">Luis Reyes</option>
+                            <option value="Andrea Terrazas">Andrea Terrazas</option>
+                        </select>
+                    </div>
+                    <div class="month-selector">
+                        <label for="filter-month">📅 Mes:</label>
+                        <select id="filter-month">
+                            <option value="Todos">Todos</option>
+                            <!-- 2026 -->
+                            <option value="Enero 2026">Enero 2026</option>
+                            <option value="Febrero 2026">Febrero 2026</option>
+                            <option value="Marzo 2026">Marzo 2026</option>
+                            <option value="Abril 2026">Abril 2026</option>
+                            <option value="Mayo 2026">Mayo 2026</option>
+                            <option value="Junio 2026">Junio 2026</option>
+                            <option value="Julio 2026">Julio 2026</option>
+                            <option value="Agosto 2026">Agosto 2026</option>
+                            <option value="Septiembre 2026">Septiembre 2026</option>
+                            <option value="Octubre 2026">Octubre 2026</option>
+                            <option value="Noviembre 2026">Noviembre 2026</option>
+                            <option value="Diciembre 2026">Diciembre 2026</option>
+                            <!-- 2027 -->
+                            <option value="Enero 2027">Enero 2027</option>
+                            <option value="Febrero 2027">Febrero 2027</option>
+                            <option value="Marzo 2027">Marzo 2027</option>
+                            <option value="Abril 2027">Abril 2027</option>
+                            <option value="Mayo 2027">Mayo 2027</option>
+                            <option value="Junio 2027">Junio 2027</option>
+                            <option value="Julio 2027">Julio 2027</option>
+                            <option value="Agosto 2027">Agosto 2027</option>
+                            <option value="Septiembre 2027">Septiembre 2027</option>
+                            <option value="Octubre 2027">Octubre 2027</option>
+                            <option value="Noviembre 2027">Noviembre 2027</option>
+                            <option value="Diciembre 2027">Diciembre 2027</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="month-selector">
-                    <label for="filter-month">Mes:</label>
-                    <select id="filter-month">
-                        <option value="Todos">Todos</option>
-                        <option value="Enero">Enero</option>
-                        <option value="Febrero">Febrero</option>
-                        <option value="Marzo">Marzo</option>
-                        <option value="Abril">Abril</option>
-                        <option value="Mayo">Mayo</option>
-                    </select>
-                </div>
-                <button class="btn-primary" id="btn-add-task">+ Nueva Tarea</button>
+                <button class="btn-primary" id="btn-add-task">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Nueva Tarea
+                </button>
             </div>
         </header>
 
@@ -45,7 +76,7 @@
         <main class="board" id="board">
             <!-- Esta Semana -->
             <div class="bcol" data-bucket="week">
-                <div class="bcol-header">
+                <div class="bcol-header header-week">
                     <h2>Esta Semana</h2>
                     <span class="count" id="count-week">0</span>
                 </div>
@@ -54,7 +85,7 @@
             
             <!-- Este Mes -->
             <div class="bcol" data-bucket="month">
-                <div class="bcol-header">
+                <div class="bcol-header header-month">
                     <h2>Este Mes</h2>
                     <span class="count" id="count-month">0</span>
                 </div>
@@ -63,7 +94,7 @@
             
             <!-- En Revisión -->
             <div class="bcol" data-bucket="review">
-                <div class="bcol-header">
+                <div class="bcol-header header-review">
                     <h2>En Revisión</h2>
                     <span class="count" id="count-review">0</span>
                 </div>
@@ -72,7 +103,7 @@
             
             <!-- Completados -->
             <div class="bcol done-col" data-bucket="done">
-                <div class="bcol-header">
+                <div class="bcol-header header-done">
                     <h2>Completados</h2>
                     <span class="count" id="count-done">0</span>
                 </div>
@@ -91,17 +122,20 @@
             <div class="modal-body">
                 <form id="task-form">
                     <input type="hidden" id="task-id">
+                    
                     <div class="form-group">
-                        <label>Título</label>
-                        <input type="text" id="task-title" required autocomplete="off">
+                        <label>📝 Título de la Tarea</label>
+                        <input type="text" id="task-title" required autocomplete="off" placeholder="Ej. Revisar contrato de proveedores...">
                     </div>
+                    
                     <div class="form-group">
-                        <label>Descripción</label>
-                        <textarea id="task-desc" rows="3"></textarea>
+                        <label>📄 Descripción Detallada</label>
+                        <textarea id="task-desc" rows="4" placeholder="Agrega notas, enlaces o requerimientos específicos para esta tarea..."></textarea>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Columna</label>
+                            <label>📌 Estado (Columna)</label>
                             <select id="task-bucket">
                                 <option value="week">Esta Semana</option>
                                 <option value="month">Este Mes</option>
@@ -110,37 +144,68 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Prioridad</label>
+                            <label>🔥 Prioridad</label>
                             <select id="task-priority">
-                                <option value="Alta">Alta</option>
-                                <option value="Media" selected>Media</option>
-                                <option value="Baja">Baja</option>
+                                <option value="Urgente">🔴 Urgente</option>
+                                <option value="Alta">🟠 Alta</option>
+                                <option value="Media" selected>🟡 Media</option>
+                                <option value="Baja">🟢 Baja</option>
                             </select>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Asignado A</label>
+                            <label>👤 Asignar a</label>
                             <select id="task-user">
-                                <option value="Andrea">Andrea</option>
-                                <option value="Luis">Luis</option>
-                                <option value="Carlos">Carlos</option>
+                                <option value="Luis Reyes">Luis Reyes</option>
+                                <option value="Andrea Terrazas">Andrea Terrazas</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Mes</label>
+                            <label>📅 Mes Objetivo</label>
                             <select id="task-month">
-                                <option value="Enero">Enero</option>
-                                <option value="Febrero">Febrero</option>
-                                <option value="Marzo">Marzo</option>
-                                <option value="Abril">Abril</option>
-                                <option value="Mayo" selected>Mayo</option>
+                                <!-- 2026 -->
+                                <option value="Enero 2026">Enero 2026</option>
+                                <option value="Febrero 2026">Febrero 2026</option>
+                                <option value="Marzo 2026">Marzo 2026</option>
+                                <option value="Abril 2026">Abril 2026</option>
+                                <option value="Mayo 2026" selected>Mayo 2026</option>
+                                <option value="Junio 2026">Junio 2026</option>
+                                <option value="Julio 2026">Julio 2026</option>
+                                <option value="Agosto 2026">Agosto 2026</option>
+                                <option value="Septiembre 2026">Septiembre 2026</option>
+                                <option value="Octubre 2026">Octubre 2026</option>
+                                <option value="Noviembre 2026">Noviembre 2026</option>
+                                <option value="Diciembre 2026">Diciembre 2026</option>
+                                <!-- 2027 -->
+                                <option value="Enero 2027">Enero 2027</option>
+                                <option value="Febrero 2027">Febrero 2027</option>
+                                <option value="Marzo 2027">Marzo 2027</option>
+                                <option value="Abril 2027">Abril 2027</option>
+                                <option value="Mayo 2027">Mayo 2027</option>
+                                <option value="Junio 2027">Junio 2027</option>
+                                <option value="Julio 2027">Julio 2027</option>
+                                <option value="Agosto 2027">Agosto 2027</option>
+                                <option value="Septiembre 2027">Septiembre 2027</option>
+                                <option value="Octubre 2027">Octubre 2027</option>
+                                <option value="Noviembre 2027">Noviembre 2027</option>
+                                <option value="Diciembre 2027">Diciembre 2027</option>
                             </select>
                         </div>
                     </div>
+
+                    <div class="form-group">
+                        <label>⏰ Fecha de Vencimiento (Opcional)</label>
+                        <input type="date" id="task-due-date">
+                    </div>
+
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary" id="btn-cancel">Cancelar</button>
-                        <button type="submit" class="btn-primary" id="btn-save">Guardar</button>
+                        <button type="submit" class="btn-primary" id="btn-save">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            Guardar Tarea
+                        </button>
                     </div>
                 </form>
             </div>

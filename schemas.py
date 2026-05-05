@@ -8,6 +8,7 @@ class TaskBase(BaseModel):
     priority: str
     user: str
     month_filter: str
+    due_date: Optional[str] = None
 
 class TaskCreate(TaskBase):
     pass
@@ -19,6 +20,7 @@ class TaskUpdate(TaskBase):
     priority: Optional[str] = None
     user: Optional[str] = None
     month_filter: Optional[str] = None
+    due_date: Optional[str] = None
 
 class Task(TaskBase):
     id: int

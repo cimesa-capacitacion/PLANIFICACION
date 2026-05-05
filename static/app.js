@@ -88,10 +88,13 @@ function createTaskElement(task) {
     el.draggable = true;
     el.dataset.id = task.id;
     
+    let dueBadge = task.due_date ? `<span class="badge" style="background: rgba(255,255,255,0.1); color: #fff;">⏰ ${task.due_date}</span>` : '';
+
     let badgesHTML = `
-        <span class="badge badge-user">${task.user}</span>
-        <span class="badge badge-priority-${task.priority.toLowerCase()}">${task.priority}</span>
-        <span class="badge badge-month">${task.month_filter}</span>
+        <span class="badge badge-user">👤 ${task.user}</span>
+        <span class="badge badge-priority-${task.priority.toLowerCase()}">🔥 ${task.priority}</span>
+        <span class="badge badge-month">📅 ${task.month_filter}</span>
+        ${dueBadge}
     `;
 
     el.innerHTML = `
@@ -105,7 +108,7 @@ function createTaskElement(task) {
             </div>
         </div>
         <div class="task-actions">
-            <button class="btn-action edit-btn" title="Editar">✏️</button>
+            <button class="btn-action edit-btn" title="Editar">✏️ Editar</button>
             <button class="btn-action delete-btn" title="Eliminar">🗑️</button>
         </div>
     `;
@@ -118,7 +121,7 @@ function createTaskElement(task) {
 
     el.querySelector('.delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        if(confirm('¿Estás seguro de eliminar esta tarea?')) {
+        if(confirm('¿Estás seguro de eliminar esta tarea permanentemente?')) {
             deleteTask(task.id);
         }
     });
@@ -144,8 +147,9 @@ function openModal(task = null) {
         document.getElementById('task-priority').value = task.priority;
         document.getElementById('task-user').value = task.user;
         document.getElementById('task-month').value = task.month_filter;
+        document.getElementById('task-due-date').value = task.due_date || '';
     } else {
-        titleEl.textContent = 'Agregar Tarea';
+        titleEl.textContent = 'Agregar Nueva Tarea';
         document.getElementById('task-id').value = '';
     }
     
@@ -167,6 +171,7 @@ async function handleTaskSubmit(e) {
         priority: document.getElementById('task-priority').value,
         user: document.getElementById('task-user').value,
         month_filter: document.getElementById('task-month').value,
+        due_date: document.getElementById('task-due-date').value || null
     };
     
     try {
@@ -189,8 +194,6 @@ async function handleTaskSubmit(e) {
         
         if (response.ok) {
             closeModal();
-            // We don't necessarily need to fetch tasks here, 
-            // WebSockets will broadcast the change to us too!
         }
     } catch (error) {
         console.error('Error saving task:', error);
