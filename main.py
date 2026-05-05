@@ -1,9 +1,10 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import json
 import os
+import datetime
 
 import models
 import schemas
@@ -58,61 +59,103 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # We don't necessarily need to receive data here, but we must keep connection open
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+# Helper function to log activity
+def log_activity(db: Session, action: str, user: str, task_title: str):
+    user_name = user if user else "Usuario Desconocido"
+    log = models.ActivityLog(action=action, user=user_name, task_title=task_title)
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return log
 
 # REST API ENDPOINTS
 
 @app.get("/api/tasks/", response_model=List[schemas.Task])
 def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    tasks = db.query(models.Task).offset(skip).limit(limit).all()
+    tasks = db.query(models.Task).filter(models.Task.is_deleted == False).offset(skip).limit(limit).all()
+    return tasks
+
+@app.get("/api/tasks/deleted", response_model=List[schemas.Task])
+def read_deleted_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    tasks = db.query(models.Task).filter(models.Task.is_deleted == True).offset(skip).limit(limit).all()
     return tasks
 
 @app.post("/api/tasks/", response_model=schemas.Task)
-async def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+async def create_task(task: schemas.TaskCreate, actor: Optional[str] = None, db: Session = Depends(get_db)):
     db_task = models.Task(**task.model_dump())
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
     
-    # Broadcast change
+    acting_user = actor or task.user
+    log = log_activity(db, "Creada", acting_user, db_task.title)
+    
+    # Broadcast changes
     await manager.broadcast(json.dumps({"type": "TASK_ADDED", "task": schemas.Task.model_validate(db_task).model_dump()}))
+    await manager.broadcast(json.dumps({"type": "HISTORY_UPDATED"}))
     
     return db_task
 
 @app.put("/api/tasks/{task_id}", response_model=schemas.Task)
-async def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(get_db)):
+async def update_task(task_id: int, task: schemas.TaskUpdate, actor: Optional[str] = None, db: Session = Depends(get_db)):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if db_task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     
+    # Check what changed to log appropriately
     update_data = task.model_dump(exclude_unset=True)
+    
+    action = "Editada"
+    if "bucket" in update_data and update_data["bucket"] != db_task.bucket:
+        action = f"Movida a {update_data['bucket']}"
+    if "is_deleted" in update_data:
+        if update_data["is_deleted"] == False and db_task.is_deleted == True:
+            action = "Restaurada de papelera"
+        elif update_data["is_deleted"] == True and db_task.is_deleted == False:
+            action = "Enviada a papelera"
+            
     for key, value in update_data.items():
         setattr(db_task, key, value)
     
     db.commit()
     db.refresh(db_task)
     
+    acting_user = actor or db_task.user
+    log_activity(db, action, acting_user, db_task.title)
+    
     # Broadcast change
     await manager.broadcast(json.dumps({"type": "TASK_UPDATED", "task": schemas.Task.model_validate(db_task).model_dump()}))
+    await manager.broadcast(json.dumps({"type": "HISTORY_UPDATED"}))
     
     return db_task
 
 @app.delete("/api/tasks/{task_id}")
-async def delete_task(task_id: int, db: Session = Depends(get_db)):
+async def delete_task(task_id: int, actor: Optional[str] = None, db: Session = Depends(get_db)):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if db_task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    db.delete(db_task)
+    # Soft delete
+    db_task.is_deleted = True
     db.commit()
+    
+    acting_user = actor or db_task.user
+    log_activity(db, "Enviada a papelera", acting_user, db_task.title)
     
     # Broadcast change
     await manager.broadcast(json.dumps({"type": "TASK_DELETED", "task_id": task_id}))
+    await manager.broadcast(json.dumps({"type": "HISTORY_UPDATED"}))
     
-    return {"message": "Task deleted successfully"}
+    return {"message": "Task moved to trash successfully"}
+
+@app.get("/api/history/", response_model=List[schemas.ActivityLog])
+def read_history(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+    logs = db.query(models.ActivityLog).order_by(models.ActivityLog.timestamp.desc()).offset(skip).limit(limit).all()
+    return logs
 
 # Static files and frontend hosting
 from fastapi.staticfiles import StaticFiles
